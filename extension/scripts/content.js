@@ -22,18 +22,62 @@ function runContentScript() {
     contacts: extractContacts(),
   });
 }
-// function timeout() {
-//   let data = [];
-//   setTimeout(() => (data = extractContacts()), 10000);
-//   return data;
-// }
+
+function scrollToBottom() {
+  window.scrollTo(0, document.body.scrollHeight);
+}
+
 function extractContacts() {
-  const chatListDiv = document.querySelector('div[aria-label="Chat list"]');
   const contacts = [];
-  chatListDiv.childNodes.forEach((element) => {
-    contacts.push(element.querySelector("span[title]").innerText);
+  const sidePane = document.getElementById("pane-side");
+
+  // Function to fill contacts
+  function fillContacts() {
+    const contactElements = document.querySelector(
+      'div[aria-label="Chat list"]'
+    ).childNodes;
+
+    contactElements.forEach((element) => {
+      const contactTitle = element.querySelector("span[title]").innerText;
+      if (!contacts.includes(contactTitle)) {
+        contacts.push(contactTitle);
+      }
+    });
+  }
+
+  // Function to scroll and fill contacts
+  function scrollAndFillContacts() {
+    sidePane.scrollTop += 650; // Adjust the scroll amount as needed
+
+    // Wait for a brief moment for contacts to load
+    setTimeout(() => {
+      fillContacts();
+      // Check if more contacts have been loaded
+      console.log(contacts);
+      if (
+        sidePane.scrollTop < sidePane.scrollHeight &&
+        sidePane.scrollTop < sidePane.scrollHeight - 1000
+      ) {
+        // If more contacts are expected, scroll and fill contacts again
+        scrollAndFillContacts();
+      } else {
+        // If all contacts are loaded, log and return contacts
+        console.log("Titles array:", contacts);
+      }
+    }, 1000); // Adjust the delay according to your page loading time
+  }
+
+  // Create a MutationObserver to detect changes in the side panel
+  const observer = new MutationObserver((mutationsList) => {
+    // Fill contacts when mutations occur
+    fillContacts();
   });
-  console.log("titles array", contacts);
+
+  // Start observing mutations in the side panel
+  observer.observe(sidePane, { childList: true, subtree: true });
+
+  // Start scrolling and filling contacts
+  scrollAndFillContacts();
 
   return contacts;
 }
